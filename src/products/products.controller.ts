@@ -3,44 +3,50 @@ import {
   Controller,
   Delete,
   Get,
-  HttpStatus,
   Param,
   Patch,
   Post,
-  Res,
+  Response,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { ProductsService } from './products.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+// import { diskStorage } from 'multer';
+// import { extname } from 'path';
+import { CreateProductDTO, UpdateProductDTO } from './dto/product-body.dto';
+import { response } from 'express';
 
 @Controller('product')
 export class ProductsController {
+  constructor(private readonly productService: ProductsService) {}
   @Get('list')
-  list(@Res() response) {
-    return response.status(HttpStatus.OK).json({ message: 'All products' });
+  list(@Response() res) {
+    return this.productService.list(res);
   }
 
   @Get(':id')
-  retrieve(@Res() response, @Param('id') id: string) {
-    return response
-      .status(HttpStatus.OK)
-      .json({ message: `This is the product ${id}` });
+  retrieve(@Param('id') id: number, @Response() res) {
+    return this.productService.retrieve(id, res);
   }
 
   @Post('')
-  create(@Res() response, @Body() body) {
-    return response.status(HttpStatus.CREATED).json(body);
+  @UseInterceptors(FileInterceptor('picture'))
+  create(
+    @Body() body: CreateProductDTO,
+    @Response() res,
+    @UploadedFile() file,
+  ) {
+    return this.productService.create(body, file, res);
   }
 
   @Patch(':id')
-  remove(@Res() response, @Param('id') id, @Body() body) {
-    return response.status(HttpStatus.OK).json({
-      sales: id,
-      body,
-    });
+  remove(@Param('id') id, @Body() body: UpdateProductDTO) {
+    return this.productService.partialUpdate(id, body, response);
   }
 
   @Delete(':id')
-  partialUpdate(@Res() response, @Param('id') id) {
-    return response
-      .status(HttpStatus.NO_CONTENT)
-      .json(`Sales ${id} was removed`);
+  partialUpdate(@Param('id') id, @Response() res) {
+    return this.productService.remove(id, res);
   }
 }

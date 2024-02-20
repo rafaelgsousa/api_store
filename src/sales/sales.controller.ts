@@ -3,46 +3,38 @@ import {
   Controller,
   Delete,
   Get,
-  HttpStatus,
   Param,
   Patch,
   Post,
-  Res,
+  Response,
 } from '@nestjs/common';
+import { SalesService } from './sales.service';
 
 @Controller('sales')
 export class SalesController {
+  constructor(private readonly salesService: SalesService) {}
   @Get('list')
-  list(@Res() response) {
-    return response
-      .status(HttpStatus.OK)
-      .json({ message: 'Todos os produtos' });
+  list(@Response() response) {
+    return this.salesService.list(response);
   }
 
   @Get(':id')
-  retrieve(@Res() response, @Param('id') id: string) {
-    return response
-      .status(HttpStatus.OK)
-      .json({ message: `Essa é a venda ${id}` });
+  retrieve(@Response() response, @Param('id') id: string) {
+    return this.salesService.retrieve(id, response);
   }
 
   @Post('')
-  create(@Res() response, @Body() body) {
-    return response.status(HttpStatus.CREATED).json(body);
+  create(@Response() response, @Body() body) {
+    return this.salesService.create(body, response);
   }
 
   @Patch(':id')
-  remove(@Res() response, @Param('id') id, @Body() body) {
-    return response.status(HttpStatus.OK).json({
-      sales: id,
-      body,
-    });
+  remove(@Response() response, @Param('id') id, @Body() body) {
+    return this.salesService.partialUpdate(id, body, response);
   }
 
   @Delete(':id')
-  partialUpdate(@Res() response, @Param('id') id) {
-    return response
-      .status(HttpStatus.NO_CONTENT)
-      .json(`Sales ${id} was removed`);
+  partialUpdate(@Response() response, @Param('id') id) {
+    return this.salesService.remove(id, response);
   }
 }

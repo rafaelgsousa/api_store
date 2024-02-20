@@ -1,12 +1,15 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { SalesController } from './sales/sales.controller';
-import { ProductsController } from './products/products.controller';
+import { ProductsModule } from './products/products.module';
+import { SalesModule } from './sales/sales.module';
+import { MongooseModule } from '@nestjs/mongoose';
+
+const DB_URL = process.env.DB_URL || 'mongodb://localhost/Store_test';
+
+const DbModuleMongoose = MongooseModule.forRoot(DB_URL);
 
 @Module({
-  imports: [],
-  controllers: [AppController, SalesController, ProductsController],
-  providers: [AppService],
+  imports: [DbModuleMongoose, ProductsModule, SalesModule],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
