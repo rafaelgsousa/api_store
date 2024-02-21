@@ -118,7 +118,11 @@ export class ProductsService {
   }
 
   serveImage(filename: string, res: Response) {
-    const imagePath = path.join(__dirname, '..', 'uploads', filename);
+    let imagePath = path.join(__dirname, '..', 'uploads', filename);
+    imagePath =
+      process.env.NODE_ENV === 'production'
+        ? imagePath
+        : imagePath.replace('/dist', '');
     console.log(imagePath);
     if (fs.existsSync(imagePath)) {
       return res.sendFile(imagePath);
