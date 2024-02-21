@@ -6,9 +6,6 @@ export type SaleDocument = HydratedDocument<Sale>;
 
 @Schema()
 export class Sale {
-  @Prop()
-  id: number;
-
   @Prop({ type: [{ type: S.Types.ObjectId, ref: 'Product' }] })
   products: Product[];
 

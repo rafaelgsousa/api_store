@@ -12,24 +12,12 @@ import {
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-// import { diskStorage } from 'multer';
-// import { extname } from 'path';
 import { CreateProductDTO, UpdateProductDTO } from './dto/product-body.dto';
-import { response } from 'express';
+import { IdParamDTO } from './dto/product-params.dto';
 
 @Controller('product')
 export class ProductsController {
   constructor(private readonly productService: ProductsService) {}
-  @Get('list')
-  list(@Response() res) {
-    return this.productService.list(res);
-  }
-
-  @Get(':id')
-  retrieve(@Param('id') id: number, @Response() res) {
-    return this.productService.retrieve(id, res);
-  }
-
   @Post('')
   @UseInterceptors(FileInterceptor('picture'))
   create(
@@ -40,13 +28,39 @@ export class ProductsController {
     return this.productService.create(body, file, res);
   }
 
+  @Get('')
+  list(@Response() res) {
+    return this.productService.list(res);
+  }
+
+  @Get(':id')
+  retrieve(@Param() id: IdParamDTO, @Response() res) {
+    console.log(`${id}`);
+    return this.productService.retrieve(id.id, res);
+  }
+
   @Patch(':id')
-  remove(@Param('id') id, @Body() body: UpdateProductDTO) {
-    return this.productService.partialUpdate(id, body, response);
+  @UseInterceptors(FileInterceptor('picture'))
+  partialUpdate(
+    @Param() id: IdParamDTO,
+    @Body() body: UpdateProductDTO,
+    @UploadedFile() file,
+    @Response() response,
+  ) {
+    return this.productService.partialUpdate(id.id, body, file, response);
   }
 
   @Delete(':id')
-  partialUpdate(@Param('id') id, @Response() res) {
-    return this.productService.remove(id, res);
+  remove(@Param() id: IdParamDTO, @Response() res) {
+    return this.productService.remove(id.id, res);
+  }
+}
+
+@Controller('uploads')
+export class UploadsController {
+  constructor(private readonly productService: ProductsService) {}
+  @Get(':filename')
+  serveImage(@Param('filename') filename: string, @Response() res) {
+    return this.productService.serveImage(filename,res);
   }
 }
