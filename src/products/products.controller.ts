@@ -8,10 +8,14 @@ import {
   Post,
   Response,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  // FileInterceptor,
+} from '@nestjs/platform-express';
 import { CreateProductDTO, UpdateProductDTO } from './dto/product-body.dto';
 import { IdParamDTO } from './dto/product-params.dto';
 
@@ -19,12 +23,18 @@ import { IdParamDTO } from './dto/product-params.dto';
 export class ProductsController {
   constructor(private readonly productService: ProductsService) {}
   @Post('')
-  @UseInterceptors(FileInterceptor('picture'))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'picture', maxCount: 5 },
+      { name: 'cover', maxCount: 1 },
+    ]),
+  )
   create(
     @Body() body: CreateProductDTO,
     @Response() res,
-    @UploadedFile() file,
+    @UploadedFiles() file: { picture?: File[]; cover?: File },
   ) {
+    console.log(`Body = ${body.name}`);
     return this.productService.create(body, file, res);
   }
 
@@ -35,24 +45,28 @@ export class ProductsController {
 
   @Get(':id')
   retrieve(@Param() id: IdParamDTO, @Response() res) {
-    console.log(`${id}`);
     return this.productService.retrieve(id.id, res);
   }
 
   @Patch(':id')
-  @UseInterceptors(FileInterceptor('picture'))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'picture', maxCount: 5 },
+      { name: 'cover', maxCount: 1 },
+    ]),
+  )
   partialUpdate(
-    @Param() id: IdParamDTO,
+    @Param() params: IdParamDTO,
     @Body() body: UpdateProductDTO,
-    @UploadedFile() file,
+    @UploadedFile() files: { picture?: File[]; cover?: File[] },
     @Response() response,
   ) {
-    return this.productService.partialUpdate(id.id, body, file, response);
+    return this.productService.partialUpdate(params.id, body, files, response);
   }
 
   @Delete(':id')
-  remove(@Param() id: IdParamDTO, @Response() res) {
-    return this.productService.remove(id.id, res);
+  remove(@Param() params: IdParamDTO, @Response() res) {
+    return this.productService.remove(params.id, res);
   }
 }
 
@@ -61,6 +75,22 @@ export class UploadsController {
   constructor(private readonly productService: ProductsService) {}
   @Get(':filename')
   serveImage(@Param('filename') filename: string, @Response() res) {
-    return this.productService.serveImage(filename,res);
+    return this.productService.serveImage(filename, res);
+  }
+  @Delete(':id/picture/:filename')
+  removePicture(
+    @Param() params: { id: string; filename: string },
+    @Response() response,
+  ) {
+    return this.productService.removePicture(
+      params.id,
+      params.filename,
+      response,
+    );
+  }
+
+  @Delete(':id/cover')
+  removeCover(@Param() params: IdParamDTO, @Response() response) {
+    return this.productService.removeCover(params.id, response);
   }
 }

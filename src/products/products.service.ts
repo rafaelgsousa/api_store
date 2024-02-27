@@ -8,10 +8,6 @@ import { File } from 'multer';
 import * as fs from 'fs';
 import * as path from 'path';
 
-interface ProductWithImagePaths extends Product {
-  picturePaths: string[];
-}
-
 @Injectable()
 export class ProductsService {
   constructor(
@@ -19,81 +15,85 @@ export class ProductsService {
     @InjectModel(Product.name) private productModel: Model<Product>
   ) {}
 
-  async create(body: any, file: any, res: Response) {
-    let filepath: string;
-    body.value = parseInt(body.value);
-
-    if (file) {
-      filepath = await this.saveImage(file);
-    }
-
+  async create(
+    body: any,
+    files: { picture?: File[]; cover?: File },
+    res: Response,
+  ) {
+    const { picture, cover } = files;
+    const picturePaths = await Promise.all(
+      (picture || []).map((file) => this.saveImage(file)),
+    );
+    const coverPath = cover ? await this.saveImage(cover[0]) : '';
     const product = new this.productModel({
       ...body,
-      picture: file ? [filepath] : [],
+      picture: picturePaths,
+      cover: coverPath,
     });
+    await product.save();
 
-    product.save();
-
-    return res.status(HttpStatus.CREATED).json({ product: product });
+    return res.status(HttpStatus.CREATED).json({ product });
   }
 
   async list(res: Response) {
-    const list = await this.productModel.find().exec();
-    const productsWithImagePaths: ProductWithImagePaths[] = list.map(
-      (product) => {
-        const productData = product.toJSON() as ProductWithImagePaths;
-        if (product.picture && product.picture.length > 0) {
-          productData.picturePaths = product.picture.map((filename) => {
-            return `${process.env.BASE_URL}/${filename}`;
-          });
-        } else {
-          productData.picturePaths = [];
-        }
-        return productData;
-      },
-    );
-    return res.status(HttpStatus.OK).json({ products: productsWithImagePaths });
+    const products = await this.productModel.find().exec();
+    return res.status(HttpStatus.OK).json({ products });
   }
 
   async retrieve(id: string, res: Response) {
-    const product = await this.productModel.findOne({ _id: id }).exec();
+    const product = await this.productModel.findById(id).exec();
     if (!product) {
       throw new NotFoundException('Product not found.');
     }
-    const productData = product.toJSON() as ProductWithImagePaths;
-    if (product.picture && product.picture.length > 0) {
-      productData.picturePaths = product.picture.map((filename) => {
-        return `${process.env.BASE_URL}/${filename}`;
-      });
-    } else {
-      productData.picturePaths = [];
-    }
-    return res.status(HttpStatus.OK).json({ product: productData });
+    return res.status(HttpStatus.OK).json({ product });
   }
 
-  async partialUpdate(id: string, body: any, file: File, res: Response) {
+  async partialUpdate(
+    id: string,
+    body: any,
+    files: { picture?: File[]; cover?: File },
+    res: Response,
+  ) {
     const product = await this.productModel.findById(id).exec();
-
     if (!product) {
-      throw new NotFoundException('Sale not found.');
+      throw new NotFoundException('Produto não encontrado.');
+    }
+
+    if (files.picture) {
+      const picturePaths = await Promise.all(
+        (files.picture || []).map((file) => this.saveImage(file)),
+      );
+      product.picture = picturePaths;
+    }
+
+    if (files.cover) {
+      const coverPath = await this.saveImage(files.cover[0]);
+      product.cover = coverPath;
     }
 
     Object.assign(product, body);
 
-    if (file) {
-      await this.saveImage(file);
-      if (product.picture) {
-        this.deleteFile(product.picture[0]);
-      }
-      product.picture = [file.filename];
-    }
-
-    product.save();
+    await product.save();
     return res.status(HttpStatus.OK).json({ product });
   }
 
-  remove(id: string, res: Response) {
-    this.productModel.deleteOne({ id: id });
+  async remove(id: string, res: Response) {
+    const product = await this.productModel.findById(id).exec();
+    if (!product) {
+      throw new NotFoundException('Product not found.');
+    }
+
+    if (product.picture && product.picture.length > 0) {
+      for (const filename of product.picture) {
+        this.deleteFile(filename);
+      }
+    }
+    if (product.cover) {
+      this.deleteFile(product.cover);
+    }
+
+    await this.productModel.deleteOne({ _id: id }).exec();
+
     return res.status(HttpStatus.NO_CONTENT).json();
   }
 
@@ -129,5 +129,34 @@ export class ProductsService {
     } else {
       return res.status(404).send('Imagem não encontrada');
     }
+  }
+
+  async removePicture(id: string, filename: string, response: Response) {
+    const product = await this.productModel.findById(id).exec();
+    if (!product) {
+      throw new NotFoundException('Produto não encontrado.');
+    }
+    const index = product.picture.indexOf(filename);
+    if (index !== -1) {
+      product.picture.splice(index, 1);
+      await product.save();
+      this.deleteFile(filename);
+      return response.status(204).send();
+    } else {
+      throw new NotFoundException('Imagem não encontrada no produto.');
+    }
+  }
+
+  async removeCover(id: string, response: Response) {
+    const product = await this.productModel.findById(id).exec();
+    if (!product) {
+      throw new NotFoundException('Produto não encontrado.');
+    }
+    if (product.cover) {
+      this.deleteFile(product.cover);
+      product.cover = '';
+      await product.save();
+    }
+    return response.status(204).send();
   }
 }

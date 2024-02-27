@@ -16,6 +16,9 @@ export class Product {
 
   @Prop()
   value: number;
+
+  @Prop()
+  cover: string;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
