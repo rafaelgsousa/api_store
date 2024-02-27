@@ -21,4 +21,13 @@ export class CreateProductDTO {
   readonly cover?: Buffer;
 }
 
-export class UpdateProductDTO extends PartialType(CreateProductDTO) {}
+export class UpdateProductDTO extends PartialType(CreateProductDTO) {
+  @IsString()
+  readonly name: string;
+
+  @IsString()
+  readonly description: string;
+
+  @IsString()
+  readonly value: string;
+}

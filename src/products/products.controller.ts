@@ -7,7 +7,7 @@ import {
   Patch,
   Post,
   Response,
-  UploadedFile,
+  // UploadedFile,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
@@ -31,10 +31,10 @@ export class ProductsController {
   )
   create(
     @Body() body: CreateProductDTO,
-    @Response() res,
-    @UploadedFiles() file: { picture?: File[]; cover?: File },
+    @Response() response,
+    @UploadedFiles() files: { picture?: File[]; cover?: File },
   ) {
-    return this.productService.create(body, file, res);
+    return this.productService.create(body, files, response);
   }
 
   @Get('')
@@ -43,8 +43,8 @@ export class ProductsController {
   }
 
   @Get(':id')
-  retrieve(@Param() id: IdParamDTO, @Response() res) {
-    return this.productService.retrieve(id.id, res);
+  retrieve(@Param() id: IdParamDTO, @Response() response) {
+    return this.productService.retrieve(id.id, response);
   }
 
   @Patch(':id')
@@ -57,15 +57,15 @@ export class ProductsController {
   partialUpdate(
     @Param() params: IdParamDTO,
     @Body() body: UpdateProductDTO,
-    @UploadedFile() files: { picture?: File[]; cover?: File[] },
+    @UploadedFiles() files: { picture?: File[]; cover?: File },
     @Response() response,
   ) {
     return this.productService.partialUpdate(params.id, body, files, response);
   }
 
   @Delete(':id')
-  remove(@Param() params: IdParamDTO, @Response() res) {
-    return this.productService.remove(params.id, res);
+  remove(@Param() params: IdParamDTO, @Response() response) {
+    return this.productService.remove(params.id, response);
   }
 }
 
