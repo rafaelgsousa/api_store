@@ -34,7 +34,6 @@ export class ProductsController {
     @Response() res,
     @UploadedFiles() file: { picture?: File[]; cover?: File },
   ) {
-    console.log(`Body = ${body.name}`);
     return this.productService.create(body, file, res);
   }
 

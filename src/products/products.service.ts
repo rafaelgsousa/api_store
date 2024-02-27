@@ -123,7 +123,7 @@ export class ProductsService {
       process.env.NODE_ENV === 'production'
         ? imagePath
         : imagePath.replace('/dist', '');
-    console.log(imagePath);
+
     if (fs.existsSync(imagePath)) {
       return res.sendFile(imagePath);
     } else {
